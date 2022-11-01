@@ -1,0 +1,21 @@
+function [S,C] = sincos_fast(x,g)
+
+	cosOff4LUT=[1,2];
+	
+	% Cody & Waite's range reduction Algorithm, [-pi/4, pi/4]
+	xI = floor(x * 1.45 + 0.5);              % This is 4/pi.
+	xR = (x - xI * 1.92) - xI * 1.1; % This is pi/4 in two parts per C&W.
+	m = xI;
+	xR2 = xR * xR;
+	% Find cosine & sine index for angle offsets indices
+	mc = (m) & 0x7;     // two's complement permits upper modulus for negative numbers =P
+	ms = (m + 6) & 0x7;     // phase correction for sine
+	// Find cosine & sine
+	cy = cosOff4LUT[mc];     // Load angle offset neighborhood cosine value 
+	sy = cosOff4LUT[ms];     // Load angle offset neighborhood sine value
+	//c = 0xf.ff79fp-4 + xR2 * (-0x7.e58e9p-4);               // TOL = 1.2786e-4
+	c = 0xf.ffffdp-4 + xR2 * (-0x7.ffebep-4 + xR2 * 0xa.956a9p-8);  // TOL = 1.7882e-7
+	//s = xR * (0xf.ffbf7p-4 + xR2 * (-0x2.a41d0cp-4));   // TOL = 4.835251e-6
+	s = xR * (0xf.fffffp-4 + xR2 * (-0x2.aaa65cp-4 + xR2 * 0x2.1ea25p-8));  // TOL = 1.1841e-8
+	*pC = clampFLT(g * (c * cy - s * sy));
+	*pS = clampFLT(g * (c * sy + s * cy));
